@@ -216,7 +216,7 @@ public class VisibilityGraph : Graph
 
     public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets)
     {
-        path = string.IsNullOrEmpty(path) ? "./report.txt" : path;
+        path = string.IsNullOrEmpty(path) ? "./serialized.txt" : path;
         var report = new StringBuilder();
         var random = new Random();
         var stopwatch = new Stopwatch();
@@ -255,8 +255,9 @@ public class VisibilityGraph : Graph
         report.AppendLine($"Test 5: get full asset tree: {stopwatch.ElapsedMilliseconds}ms");
 
         report.AppendLine($"Serialized graph: {Encoding.UTF8.GetByteCount(serializedGraph)} bytes");
-        report.Append(serializedGraph);
+        Console.WriteLine();
+        Console.WriteLine(report.ToString());
 
-        await File.WriteAllTextAsync(path, report.ToString());
+        await File.WriteAllTextAsync(path, serializedGraph);
     }
 }

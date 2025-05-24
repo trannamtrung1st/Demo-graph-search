@@ -237,14 +237,14 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
                 var assets = int.Parse(Console.ReadLine());
                 Console.Write("Please enter the number of random edges: ");
                 var randomEdges = int.Parse(Console.ReadLine());
-                Console.Write("Please enter the path to the report: ");
+                Console.Write("Please enter the path to the serialized graph: ");
                 var path = Console.ReadLine();
-                var newGraph = new VisibilityGraph();
-                newGraph.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
 
                 bool shouldContinue;
                 do
                 {
+                    var newGraph = new VisibilityGraph();
+                    newGraph.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
                     await newGraph.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
                     Console.Write("Do you want to continue? (1/0): ");
                     shouldContinue = Console.ReadLine() == "1";
