@@ -116,16 +116,15 @@ graph.AddEdge(
 
 var graph2 = new VisibilityGraph();
 graph2.Load(graph.ToSerializedString(), graph.GetVertices());
+await Start(graph2, labelVertexMap);
 
-Start(graph2, labelVertexMap);
-
-static void Start(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
+static async Task Start(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
 {
     while (true)
     {
         try
         {
-            ExecuteOnce(graph, labelVertexMap);
+            await ExecuteOnce(graph, labelVertexMap);
         }
         catch (Exception e)
         {
@@ -138,7 +137,7 @@ static void Start(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexM
     }
 }
 
-static void ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
+static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
 {
     Console.WriteLine("1. Get visible assets");
     Console.WriteLine("2. Get first visible asset tree");
@@ -147,7 +146,8 @@ static void ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelV
     Console.WriteLine("5. Change parent");
     Console.WriteLine("6. Add edge");
     Console.WriteLine("7. Remove edge");
-    Console.WriteLine("8. Exit");
+    Console.WriteLine("8. Report random graph");
+    Console.WriteLine("9. Exit");
     Console.Write("Please choose an option: ");
     var option = Console.ReadLine();
     Console.Clear();
@@ -228,6 +228,30 @@ static void ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelV
             }
             break;
         case "8":
+            {
+                Console.Write("Please enter the number of users: ");
+                var users = int.Parse(Console.ReadLine());
+                Console.Write("Please enter the number of org units: ");
+                var orgUnits = int.Parse(Console.ReadLine());
+                Console.Write("Please enter the number of assets: ");
+                var assets = int.Parse(Console.ReadLine());
+                Console.Write("Please enter the number of random edges: ");
+                var randomEdges = int.Parse(Console.ReadLine());
+                Console.Write("Please enter the path to the report: ");
+                var path = Console.ReadLine();
+                var newGraph = new VisibilityGraph();
+                newGraph.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
+
+                bool shouldContinue;
+                do
+                {
+                    await newGraph.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
+                    Console.Write("Do you want to continue? (1/0): ");
+                    shouldContinue = Console.ReadLine() == "1";
+                } while (shouldContinue);
+            }
+            break;
+        case "9":
             {
                 Environment.Exit(0);
             }

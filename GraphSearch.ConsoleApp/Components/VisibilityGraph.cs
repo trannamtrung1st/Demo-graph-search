@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text;
+using System.Threading.Tasks;
 using GraphSearch.ConsoleApp.Constants;
 
 namespace GraphSearch.ConsoleApp.Components;
@@ -126,5 +129,134 @@ public class VisibilityGraph : Graph
         }
 
         return [vAsset];
+    }
+
+    public void GenerateRandomGraph(int users, int orgUnits, int assets, int randomEdges)
+    {
+        var vUsers = new List<Vertex>();
+        var vOrgUnits = new List<Vertex>();
+        var vAssets = new List<Vertex>();
+        var vertexMap = new Dictionary<string, Vertex>();
+        int lastId = 0;
+
+        for (var i = 0; i < users; i++)
+        {
+            var currentId = ++lastId;
+            var user = new Vertex(currentId, $"u{i}", EVertexType.User);
+            vertexMap[user.Label] = user;
+            vUsers.Add(user);
+            AddVertex(user);
+        }
+        for (var i = 0; i < orgUnits; i++)
+        {
+            var currentId = ++lastId;
+            var orgUnit = new Vertex(currentId, $"ou{i}", EVertexType.OrgUnit);
+            vertexMap[orgUnit.Label] = orgUnit;
+            vOrgUnits.Add(orgUnit);
+            AddVertex(orgUnit);
+        }
+        for (var i = 0; i < assets; i++)
+        {
+            var currentId = ++lastId;
+            var asset = new Vertex(currentId, $"a{i}", EVertexType.Asset);
+            vertexMap[asset.Label] = asset;
+            vAssets.Add(asset);
+            AddVertex(asset);
+        }
+
+        var random = new Random();
+        for (var i = 0; i < users; i++)
+        {
+            var user = vertexMap[$"u{i}"];
+            var tempVOrgUnits = vOrgUnits.ToList();
+            for (var j = 0; j < random.Next(1, randomEdges); j++)
+            {
+                var orgUnit = tempVOrgUnits[random.Next(tempVOrgUnits.Count)];
+                tempVOrgUnits.Remove(orgUnit);
+                AddEdge(new Edge(user, orgUnit, "-"));
+            }
+        }
+
+        for (var i = 0; i < orgUnits; i++)
+        {
+            var orgUnit = vertexMap[$"ou{i}"];
+            var tempVAssets = vAssets.ToList();
+            for (var j = 0; j < random.Next(1, randomEdges); j++)
+            {
+                var asset = tempVAssets[random.Next(tempVAssets.Count)];
+                tempVAssets.Remove(asset);
+                var randomConn = random.Next(3);
+                var randomSymbol = randomConn switch
+                {
+                    0 => "x",
+                    1 => "~x",
+                    2 => "~",
+                    _ => "-",
+                };
+                AddEdge(new Edge(orgUnit, asset, randomSymbol));
+            }
+        }
+
+        var queue = new Queue<Vertex>();
+        queue.Enqueue(vAssets[0]);
+        vAssets.Remove(vAssets[0]);
+
+        while (vAssets.Count > 0 && queue.Count > 0)
+        {
+            var currentParent = queue.Dequeue();
+            for (var i = 0; i < random.Next(1, randomEdges) && vAssets.Count > 0; i++)
+            {
+                var asset = vAssets[random.Next(vAssets.Count)];
+                vAssets.Remove(asset);
+                queue.Enqueue(asset);
+                AddEdge(new Edge(currentParent, asset, "-", directed: true, isTree: true));
+            }
+        }
+    }
+
+    public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets)
+    {
+        path = string.IsNullOrEmpty(path) ? "./report.txt" : path;
+        var report = new StringBuilder();
+        var random = new Random();
+        var stopwatch = new Stopwatch();
+        var numberOfVertices = _vertices.Count;
+        var numberOfEdges = _edges.Count;
+        var rootAsset = _vertices.Values.FirstOrDefault(v => v.Type == EVertexType.Asset && v.Parent is null);
+        var randomUserLabel = $"u{random.Next(users)}";
+        var randomAssetLabel = $"a{random.Next(assets)}";
+        var randomUser = _vertices.Values.FirstOrDefault(v => v.Label == randomUserLabel);
+        var randomAsset = _vertices.Values.FirstOrDefault(v => v.Label == randomAssetLabel);
+
+        // Test 1: serialize graph
+        stopwatch.Restart();
+        var serializedGraph = ToSerializedString();
+        report.AppendLine($"Test 1: serialize graph: {stopwatch.ElapsedMilliseconds}ms");
+
+        // Test 2: load graph
+        stopwatch.Restart();
+        var newGraph = new VisibilityGraph();
+        newGraph.Load(serializedGraph, _vertices);
+        report.AppendLine($"Test 2: load graph: {stopwatch.ElapsedMilliseconds}ms");
+
+        // Test 3: check visibility
+        stopwatch.Restart();
+        var (includedInTree, unauthorized) = newGraph.CheckVisibility(randomUser.Id, rootAsset.Id);
+        report.AppendLine($"Test 3: check visibility - included: {includedInTree.Count} - unauthorized: {unauthorized.Count} - {stopwatch.ElapsedMilliseconds}ms");
+
+        // Test 4: get first visible asset tree
+        stopwatch.Restart();
+        var firstVisibleAssetTree = newGraph.GetFirstVisibleAssetTree(randomAsset.Id, includedInTree, unauthorized);
+        report.AppendLine($"Test 4: get first visible asset tree - count: {firstVisibleAssetTree.Count} - {stopwatch.ElapsedMilliseconds}ms");
+
+        // Test 5: get full asset tree
+        stopwatch.Restart();
+        var fullAssetTree = newGraph.GetFullAssetTree(includedInTree, rootAsset.Id);
+        report.AppendLine($"Test 5: get full asset tree: {stopwatch.ElapsedMilliseconds}ms");
+
+        report.AppendLine($"Serialized graph: {Encoding.UTF8.GetByteCount(serializedGraph)} bytes");
+        report.Append(serializedGraph);
+
+        await File.WriteAllTextAsync(path, report.ToString());
     }
 }
