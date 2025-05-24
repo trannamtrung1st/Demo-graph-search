@@ -1,4 +1,6 @@
-﻿using GraphSearch.ConsoleApp.Components;
+﻿using System.Text;
+using System.Text.Json;
+using GraphSearch.ConsoleApp.Components;
 
 var graph = new Graph();
 
@@ -115,7 +117,8 @@ static async Task ExecuteOnce(VisibilityGraph graph)
     Console.WriteLine("6. Add edge");
     Console.WriteLine("7. Remove edge");
     Console.WriteLine("8. Report random graph");
-    Console.WriteLine("9. Exit");
+    Console.WriteLine("9. Generate random test data");
+    Console.WriteLine("10. Exit");
     Console.Write("Please choose an option: ");
     var option = Console.ReadLine();
     Console.Clear();
@@ -222,6 +225,25 @@ static async Task ExecuteOnce(VisibilityGraph graph)
             }
             break;
         case "9":
+            {
+                Console.Write("Please enter the number of assets: ");
+                var assets = int.Parse(Console.ReadLine());
+                var visibleAssets = new List<object>();
+                for (var i = 0; i < assets; i++)
+                {
+                    visibleAssets.Add(new
+                    {
+                        id = Guid.NewGuid(),
+                        name = $"Asset {i + 1}",
+                        resourcePath = $"{Guid.NewGuid()}/{Guid.NewGuid()}",
+                        isOwner = Random.Shared.Next() % 2 == 0
+                    });
+                }
+                var totalBytes = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(visibleAssets));
+                Console.WriteLine($"Total {totalBytes} bytes");
+            }
+            break;
+        case "10":
             {
                 Environment.Exit(0);
             }
