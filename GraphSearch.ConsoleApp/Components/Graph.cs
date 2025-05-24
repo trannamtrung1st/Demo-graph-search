@@ -5,6 +5,8 @@ public class Graph
     protected readonly Dictionary<string, Vertex> _vertices = [];
     protected readonly List<Edge> _edges = [];
 
+    public virtual List<Edge> GetEdges() => _edges;
+
     public virtual Dictionary<string, Vertex> GetVertices() => _vertices;
 
     public virtual void AddVertex(params Vertex[] vertices)

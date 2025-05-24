@@ -84,17 +84,16 @@ graph.AddEdge(
     new Edge(a9, a12, "-", true, true)
 );
 
-var graph2 = new VisibilityGraph();
-graph2.Load(graph.ToSerializedString());
-await Start(graph2);
+var graphManager = new VisibilityGraphManager(graph);
+await Start(graphManager);
 
-static async Task Start(VisibilityGraph graph)
+static async Task Start(VisibilityGraphManager graphManager)
 {
     while (true)
     {
         try
         {
-            await ExecuteOnce(graph);
+            await ExecuteOnce(graphManager);
         }
         catch (Exception e)
         {
@@ -107,7 +106,7 @@ static async Task Start(VisibilityGraph graph)
     }
 }
 
-static async Task ExecuteOnce(VisibilityGraph graph)
+static async Task ExecuteOnce(VisibilityGraphManager graphManager)
 {
     Console.WriteLine("1. Get visible assets");
     Console.WriteLine("2. Get first visible asset tree");
@@ -128,7 +127,7 @@ static async Task ExecuteOnce(VisibilityGraph graph)
             {
                 Console.Write("Please enter the user id: ");
                 var userId = Console.ReadLine();
-                var visibleAssets = graph.GetVisibleAssets(userId);
+                var visibleAssets = graphManager.GetVisibleAssets(userId);
                 PrintTree(visibleAssets.ToList());
             }
             break;
@@ -139,8 +138,8 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                 Console.Write("Please enter the asset id: ");
                 var assetId = Console.ReadLine();
                 var rootAssetId = RootAssetId;
-                var (includedInTree, unauthorized) = graph.CheckVisibility(userId, rootAssetId);
-                var firstVisibleTree = graph.GetFirstVisibleAssetTree(assetId, includedInTree, unauthorized);
+                var (includedInTree, unauthorized) = graphManager.CheckVisibility(userId, rootAssetId);
+                var firstVisibleTree = graphManager.GetFirstVisibleAssetTree(assetId, includedInTree, unauthorized);
                 PrintTree(firstVisibleTree, unauthorized);
             }
             break;
@@ -149,14 +148,14 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                 Console.Write("Please enter the user id: ");
                 var userId = Console.ReadLine();
                 var rootAssetId = RootAssetId;
-                var (includedInTree, unauthorized) = graph.CheckVisibility(userId, rootAssetId);
-                var fullTree = graph.GetFullAssetTree(includedInTree, rootAssetId);
+                var (includedInTree, unauthorized) = graphManager.CheckVisibility(userId, rootAssetId);
+                var fullTree = graphManager.GetFullAssetTree(includedInTree, rootAssetId);
                 PrintTree(fullTree, unauthorized);
             }
             break;
         case "4":
             {
-                Console.WriteLine(graph.ToSerializedString());
+                Console.WriteLine(graphManager.Graph.ToSerializedString());
             }
             break;
         case "5":
@@ -165,17 +164,17 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                 var movingAssetId = Console.ReadLine();
                 Console.Write("Please enter the parent asset id: ");
                 var parentAssetId = Console.ReadLine();
-                graph.ChangeParent(movingAssetId, parentAssetId);
+                graphManager.Graph.ChangeParent(movingAssetId, parentAssetId);
             }
             break;
         case "6":
             {
                 Console.Write("Please enter the from vertex id: ");
                 var fromVertexId = Console.ReadLine();
-                var fromVertex = graph.V(fromVertexId, upsert: true);
+                var fromVertex = graphManager.Graph.V(fromVertexId, upsert: true);
                 Console.Write("Please enter the to vertex id: ");
                 var toVertexId = Console.ReadLine();
-                var toVertex = graph.V(toVertexId, upsert: true);
+                var toVertex = graphManager.Graph.V(toVertexId, upsert: true);
                 Console.Write("Please enter the connection symbol: ");
                 var connectionSymbol = Console.ReadLine();
                 var directed = false; var tree = false;
@@ -184,7 +183,7 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                     directed = true;
                     tree = true;
                 }
-                graph.AddEdge(new Edge(fromVertex, toVertex, connectionSymbol, directed, tree));
+                graphManager.Graph.AddEdge(new Edge(fromVertex, toVertex, connectionSymbol, directed, tree));
             }
             break;
         case "7":
@@ -197,7 +196,7 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                 var directed = Console.ReadLine() == "1";
                 Console.Write("Please enter the connection symbol: ");
                 var connectionSymbol = Console.ReadLine();
-                graph.RemoveEdge(fromVertex, toVertex, directed, connectionSymbol);
+                graphManager.Graph.RemoveEdge(fromVertex, toVertex, directed, connectionSymbol);
             }
             break;
         case "8":
@@ -216,9 +215,9 @@ static async Task ExecuteOnce(VisibilityGraph graph)
                 bool shouldStop;
                 do
                 {
-                    var newGraph = new VisibilityGraph();
-                    newGraph.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
-                    await newGraph.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
+                    var newManager = new VisibilityGraphManager();
+                    newManager.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
+                    await newManager.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
                     Console.Write("Do you want to stop? (1/0): ");
                     shouldStop = Console.ReadLine() == "1";
                 } while (!shouldStop);

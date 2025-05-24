@@ -3,12 +3,14 @@ using System.Text;
 
 namespace GraphSearch.ConsoleApp.Components;
 
-public class VisibilityGraph : Graph
+public class VisibilityGraphManager(Graph graph = null)
 {
+    public Graph Graph { get; } = graph ?? new Graph();
+
     public HashSet<Vertex> GetVisibleAssets(string vUserId)
     {
         var vAssets = new HashSet<Vertex>();
-        var vUser = V(vUserId);
+        var vUser = Graph.V(vUserId);
         var vOus = vUser.GetEdges().Select(e => e.Other(vUser)).ToArray();
 
         foreach (var vOu in vOus)
@@ -42,7 +44,7 @@ public class VisibilityGraph : Graph
 
     public List<Vertex> GetFullAssetTree(HashSet<string> includedInTree, string vAssetId)
     {
-        var vAsset = V(vAssetId);
+        var vAsset = Graph.V(vAssetId);
         var tree = vAsset.BFS(
             process: args =>
             {
@@ -59,7 +61,7 @@ public class VisibilityGraph : Graph
     public (HashSet<string> IncludedInTree, HashSet<string> Unauthorized) CheckVisibility(string vUserId, string vAssetId)
     {
         var visibleAssets = GetVisibleAssets(vUserId);
-        var vAsset = V(vAssetId);
+        var vAsset = Graph.V(vAssetId);
         var unauthorized = new HashSet<string>();
         var includedInTree = new HashSet<string>();
         _ = vAsset.DFS(
@@ -90,7 +92,7 @@ public class VisibilityGraph : Graph
 
     public List<Vertex> GetFirstVisibleAssetTree(string vAssetId, HashSet<string> includedInTree, HashSet<string> unauthorized)
     {
-        var vAsset = V(vAssetId);
+        var vAsset = Graph.V(vAssetId);
         var found = false;
         var firstVisible = vAsset.BFS(
             process: args =>
@@ -139,37 +141,37 @@ public class VisibilityGraph : Graph
         {
             var user = new Vertex($"u:{i}");
             vUsers.Add(user);
-            AddVertex(user);
+            Graph.AddVertex(user);
         }
         for (var i = 0; i < orgUnits; i++)
         {
             var orgUnit = new Vertex($"ou:{i}");
             vOrgUnits.Add(orgUnit);
-            AddVertex(orgUnit);
+            Graph.AddVertex(orgUnit);
         }
         for (var i = 0; i < assets; i++)
         {
             var asset = new Vertex($"a:{i}");
             vAssets.Add(asset);
-            AddVertex(asset);
+            Graph.AddVertex(asset);
         }
 
         var random = new Random();
         for (var i = 0; i < users; i++)
         {
-            var user = V($"u:{i}");
+            var user = Graph.V($"u:{i}");
             var tempVOrgUnits = vOrgUnits.ToList();
             for (var j = 0; j < random.Next(1, randomEdges); j++)
             {
                 var orgUnit = tempVOrgUnits[random.Next(tempVOrgUnits.Count)];
                 tempVOrgUnits.Remove(orgUnit);
-                AddEdge(new Edge(user, orgUnit, "-"));
+                Graph.AddEdge(new Edge(user, orgUnit, "-"));
             }
         }
 
         for (var i = 0; i < orgUnits; i++)
         {
-            var orgUnit = V($"ou:{i}");
+            var orgUnit = Graph.V($"ou:{i}");
             var tempVAssets = vAssets.ToList();
             for (var j = 0; j < random.Next(1, randomEdges); j++)
             {
@@ -183,7 +185,7 @@ public class VisibilityGraph : Graph
                     2 => "~",
                     _ => "-",
                 };
-                AddEdge(new Edge(orgUnit, asset, randomSymbol));
+                Graph.AddEdge(new Edge(orgUnit, asset, randomSymbol));
             }
         }
 
@@ -199,7 +201,7 @@ public class VisibilityGraph : Graph
                 var asset = vAssets[random.Next(vAssets.Count)];
                 vAssets.Remove(asset);
                 queue.Enqueue(asset);
-                AddEdge(new Edge(currentParent, asset, "-", directed: true, isTree: true));
+                Graph.AddEdge(new Edge(currentParent, asset, "-", directed: true, isTree: true));
             }
         }
     }
@@ -210,23 +212,24 @@ public class VisibilityGraph : Graph
         var report = new StringBuilder();
         var random = new Random();
         var stopwatch = new Stopwatch();
-        var numberOfVertices = _vertices.Count;
-        var numberOfEdges = _edges.Count;
-        var rootAsset = _vertices.Values.FirstOrDefault(v => v.Type == "a" && v.Parent is null);
+        var vertices = Graph.GetVertices().Values;
+        var numberOfVertices = vertices.Count;
+        var numberOfEdges = Graph.GetEdges().Count;
+        var rootAsset = vertices.FirstOrDefault(v => v.Type == "a" && v.Parent is null);
         var randomUserId = $"u:{random.Next(users)}";
         var randomAssetId = $"a:{random.Next(assets)}";
-        var randomUser = _vertices.Values.FirstOrDefault(v => v.Id == randomUserId);
-        var randomAsset = _vertices.Values.FirstOrDefault(v => v.Id == randomAssetId);
+        var randomUser = vertices.FirstOrDefault(v => v.Id == randomUserId);
+        var randomAsset = vertices.FirstOrDefault(v => v.Id == randomAssetId);
 
         // Test 1: serialize graph
         stopwatch.Restart();
-        var serializedGraph = ToSerializedString();
+        var serializedGraph = Graph.ToSerializedString();
         report.AppendLine($"Test 1: serialize graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 2: load graph
         stopwatch.Restart();
-        var newGraph = new VisibilityGraph();
-        newGraph.Load(serializedGraph);
+        var newGraph = new VisibilityGraphManager();
+        newGraph.Graph.Load(serializedGraph);
         report.AppendLine($"Test 2: load graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 3: check visibility
@@ -247,13 +250,13 @@ public class VisibilityGraph : Graph
         // Test 6: add random edge
         stopwatch.Restart();
         var randomOuId = $"ou:{random.Next(orgUnits)}";
-        var randomOu = newGraph.V(randomOuId);
-        newGraph.AddEdge(new Edge(randomOu, randomAsset, "-"));
+        var randomOu = newGraph.Graph.V(randomOuId);
+        newGraph.Graph.AddEdge(new Edge(randomOu, randomAsset, "-"));
         report.AppendLine($"Test 6: add random edge: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 7: remove random edge
         stopwatch.Restart();
-        newGraph.RemoveEdge(randomOu.Id, randomAsset.Id);
+        newGraph.Graph.RemoveEdge(randomOu.Id, randomAsset.Id);
         report.AppendLine($"Test 7: remove random edge: {stopwatch.ElapsedMilliseconds}ms");
 
         report.AppendLine($"Serialized graph: {Encoding.UTF8.GetByteCount(serializedGraph)} bytes");
