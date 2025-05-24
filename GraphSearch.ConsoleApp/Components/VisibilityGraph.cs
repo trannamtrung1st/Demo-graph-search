@@ -244,6 +244,18 @@ public class VisibilityGraph : Graph
         var fullAssetTree = newGraph.GetFullAssetTree(includedInTree, rootAsset.Id);
         report.AppendLine($"Test 5: get full asset tree: {stopwatch.ElapsedMilliseconds}ms");
 
+        // Test 6: add random edge
+        stopwatch.Restart();
+        var randomOuId = $"ou:{random.Next(orgUnits)}";
+        var randomOu = newGraph.V(randomOuId);
+        newGraph.AddEdge(new Edge(randomOu, randomAsset, "-"));
+        report.AppendLine($"Test 6: add random edge: {stopwatch.ElapsedMilliseconds}ms");
+
+        // Test 7: remove random edge
+        stopwatch.Restart();
+        newGraph.RemoveEdge(randomOu.Id, randomAsset.Id);
+        report.AppendLine($"Test 7: remove random edge: {stopwatch.ElapsedMilliseconds}ms");
+
         report.AppendLine($"Serialized graph: {Encoding.UTF8.GetByteCount(serializedGraph)} bytes");
         Console.WriteLine();
         Console.WriteLine(report.ToString());
