@@ -9,6 +9,7 @@ public class Vertex
     public string Label { get; set; }
     public EVertexType Type { get; set; }
     public Vertex Parent { get; set; }
+    public Edge ParentEdge { get; set; }
 
     public Vertex() { }
 
@@ -23,7 +24,20 @@ public class Vertex
     {
         _edges.Add(edge);
         if (edge.IsTree && edge.To.Id == Id)
+        {
             Parent = edge.From;
+            ParentEdge = edge;
+        }
+    }
+
+    public void RemoveEdge(Edge edge)
+    {
+        _edges.Remove(edge);
+        if (edge.IsTree && edge.To.Id == Id)
+        {
+            Parent = null;
+            ParentEdge = null;
+        }
     }
 
     public IEnumerable<Edge> GetEdges() => _edges;

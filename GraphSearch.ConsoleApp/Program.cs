@@ -1,4 +1,5 @@
 ﻿using GraphSearch.ConsoleApp.Components;
+using GraphSearch.ConsoleApp.Constants;
 
 var graph = new Graph();
 
@@ -41,6 +42,14 @@ var labelVertexMap = new Dictionary<string, Vertex>()
     { ou5.Label, ou5 },
     { u1.Label, u1 },
     { u2.Label, u2 },
+    { u3.Label, u3 },
+    { u4.Label, u4 },
+    { u5.Label, u5 },
+    { u6.Label, u6 },
+    { u7.Label, u7 },
+    { u8.Label, u8 },
+    { u9.Label, u9 },
+    { u10.Label, u10 },
     { a1.Label, a1 },
     { a2.Label, a2 },
     { a3.Label, a3 },
@@ -59,7 +68,7 @@ var labelVertexMap = new Dictionary<string, Vertex>()
 graph.AddVertex(ou1, ou2, ou3, ou4, ou5);
 
 // Add Users
-graph.AddVertex(u1, u2);
+graph.AddVertex(u1, u2, u3, u4, u5, u6, u7, u8, u9, u10);
 
 // Add Assets
 graph.AddVertex(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12);
@@ -135,7 +144,10 @@ static void ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelV
     Console.WriteLine("2. Get first visible asset tree");
     Console.WriteLine("3. Get full asset tree");
     Console.WriteLine("4. Serialize graph");
-    Console.WriteLine("5. Exit");
+    Console.WriteLine("5. Change parent");
+    Console.WriteLine("6. Add edge");
+    Console.WriteLine("7. Remove edge");
+    Console.WriteLine("8. Exit");
     Console.Write("Please choose an option: ");
     var option = Console.ReadLine();
     Console.Clear();
@@ -177,6 +189,45 @@ static void ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelV
             }
             break;
         case "5":
+            {
+                Console.Write("Please enter the moving asset label: ");
+                var movingAssetId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter the parent asset label: ");
+                var parentAssetId = labelVertexMap[Console.ReadLine()].Id;
+                graph.ChangeParent(movingAssetId, parentAssetId);
+            }
+            break;
+        case "6":
+            {
+                Console.Write("Please enter the from vertex label: ");
+                var fromVertex = labelVertexMap[Console.ReadLine()];
+                Console.Write("Please enter the to vertex label: ");
+                var toVertex = labelVertexMap[Console.ReadLine()];
+                Console.Write("Please enter the connection symbol: ");
+                var connectionSymbol = Console.ReadLine();
+                var directed = false; var tree = false;
+                if (fromVertex.Type == EVertexType.Asset && toVertex.Type == EVertexType.Asset)
+                {
+                    directed = true;
+                    tree = true;
+                }
+                graph.AddEdge(new Edge(fromVertex, toVertex, connectionSymbol, directed, tree));
+            }
+            break;
+        case "7":
+            {
+                Console.Write("Please enter the from asset label: ");
+                var fromAssetId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter the to asset label: ");
+                var toAssetId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter directed (1/0): ");
+                var directed = Console.ReadLine() == "1";
+                Console.Write("Please enter the connection symbol: ");
+                var connectionSymbol = Console.ReadLine();
+                graph.RemoveEdge(fromAssetId, toAssetId, directed, connectionSymbol);
+            }
+            break;
+        case "8":
             {
                 Environment.Exit(0);
             }

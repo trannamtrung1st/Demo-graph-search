@@ -74,10 +74,11 @@ public class VisibilityGraph : Graph
             neighborFilter: v => v.Type == EVertexType.Asset,
             beforePop: (v, _, s) =>
             {
-                if (v.Parent is not null && (s.Equals(true) || includedInTree.Contains(v.Id)))
+                if (s.Equals(true) || includedInTree.Contains(v.Id))
                 {
                     includedInTree.Add(v.Id);
-                    includedInTree.Add(v.Parent.Id);
+                    if (v.Parent is not null)
+                        includedInTree.Add(v.Parent.Id);
                 }
             },
             initialState: true
