@@ -2,10 +2,10 @@ namespace GraphSearch.ConsoleApp.Components;
 
 public class Graph
 {
-    protected Dictionary<int, Vertex> _vertices = [];
+    protected readonly Dictionary<string, Vertex> _vertices = [];
     protected readonly List<Edge> _edges = [];
 
-    public virtual Dictionary<int, Vertex> GetVertices() => _vertices;
+    public virtual Dictionary<string, Vertex> GetVertices() => _vertices;
 
     public virtual void AddVertex(params Vertex[] vertices)
     {
@@ -23,7 +23,7 @@ public class Graph
         }
     }
 
-    public virtual void RemoveEdge(int fromId, int toId, bool directed = false, string connectionSymbol = null)
+    public virtual void RemoveEdge(string fromId, string toId, bool directed = false, string connectionSymbol = null)
     {
         var shouldCheckSymbol = !string.IsNullOrEmpty(connectionSymbol);
         var edge = _edges.FirstOrDefault(e =>
@@ -46,7 +46,7 @@ public class Graph
         edge.To.RemoveEdge(edge);
     }
 
-    public virtual void ChangeParent(int movingAssetId, int parentAssetId)
+    public virtual void ChangeParent(string movingAssetId, string parentAssetId)
     {
         var movingAsset = V(movingAssetId);
         var parentAsset = V(parentAssetId);
@@ -56,24 +56,49 @@ public class Graph
         AddEdge(new Edge(parentAsset, movingAsset, "-", directed: true, isTree: true));
     }
 
-    public virtual Vertex V(int id)
+    public virtual Vertex V(string id, bool upsert = false)
     {
-        return _vertices[id];
+        if (!_vertices.TryGetValue(id, out var v) && upsert)
+        {
+            v = new(id);
+            _vertices.Add(id, v);
+        }
+
+        return v ?? throw new KeyNotFoundException($"Vertex {id} not found");
     }
 
-    public virtual void Load(string serializedString, Dictionary<int, Vertex> vertices)
+    public virtual void Load(string serializedString)
     {
-        _vertices = vertices;
+        _vertices.Clear();
+        _edges.Clear();
+
         var edges = serializedString.Split("\n").Select(e => e.Split(" "))
-            .Select(e => new Edge(
-                from: V(int.Parse(e[0])),
-                to: V(int.Parse(e[2])),
-                connectionSymbol: e[1],
-                directed: e[3] == "1",
-                isTree: e[4] == "1"
-            ));
+            .Select(e =>
+            {
+                var from = e[0];
+                var connectionSymbol = e[1];
+                var to = e[2];
+                var directed = e[3] == "1";
+                var istree = e[4] == "1";
+
+                if (!_vertices.TryGetValue(from, out var vFrom))
+                {
+                    vFrom = new Vertex(from);
+                    _vertices.Add(from, vFrom);
+                }
+
+                if (!_vertices.TryGetValue(to, out var vTo))
+                {
+                    vTo = new Vertex(to);
+                    _vertices.Add(to, vTo);
+                }
+
+                var edge = new Edge(vFrom, vTo, connectionSymbol, directed, istree);
+                return edge;
+            });
+
         foreach (var edge in edges)
-            _edges.Add(edge);
+            AddEdge(edge);
     }
 
     public override string ToString()

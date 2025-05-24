@@ -1,23 +1,30 @@
-using GraphSearch.ConsoleApp.Constants;
-
 namespace GraphSearch.ConsoleApp.Components;
 
 public class Vertex
 {
     private readonly List<Edge> _edges = [];
-    public int Id { get; set; }
-    public string Label { get; set; }
-    public EVertexType Type { get; set; }
+
+    private string _id;
+    public string Id
+    {
+        get => _id;
+        set
+        {
+            _id = value;
+            Type = _id?.Split(':')[0];
+        }
+    }
+
+    public string Type { get; private set; }
+
     public Vertex Parent { get; set; }
     public Edge ParentEdge { get; set; }
 
     public Vertex() { }
 
-    public Vertex(int id, string label, EVertexType type)
+    public Vertex(string id)
     {
         Id = id;
-        Label = label ?? $"{id}";
-        Type = type;
     }
 
     public void AddEdge(Edge edge)
@@ -42,7 +49,7 @@ public class Vertex
 
     public IEnumerable<Edge> GetEdges() => _edges;
 
-    public override string ToString() => Label;
+    public override string ToString() => Id;
 
     // Breadth-First Search
     public List<Vertex> BFS(
@@ -50,7 +57,7 @@ public class Vertex
         Func<Vertex, bool> neighborFilter,
         object initialState)
     {
-        var visited = new HashSet<int>();
+        var visited = new HashSet<string>();
         var queue = new Queue<(Vertex v, Edge e, object s)>();
         var result = new List<Vertex>();
         queue.Enqueue((this, null, initialState));
@@ -91,7 +98,7 @@ public class Vertex
         Action<Vertex, Edge, object> beforePop,
         object initialState)
     {
-        var visited = new HashSet<int>();
+        var visited = new HashSet<string>();
         var result = new List<Vertex>();
         process ??= (_ => (true, true, initialState));
         DFSUtil((this, null, initialState), visited, result, process, neighborFilter, beforePop);
@@ -99,7 +106,7 @@ public class Vertex
     }
 
     private static void DFSUtil(
-        (Vertex v, Edge e, object s) args, HashSet<int> visited, List<Vertex> result,
+        (Vertex v, Edge e, object s) args, HashSet<string> visited, List<Vertex> result,
         Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
         Func<Vertex, bool> neighborFilter,
         Action<Vertex, Edge, object> beforePop)
@@ -125,8 +132,4 @@ public class Vertex
 
         beforePop?.Invoke(vertex, edge, state);
     }
-
-    public static Vertex OU(int id, string label) => new(id, label, EVertexType.OrgUnit);
-    public static Vertex User(int id, string label) => new(id, label, EVertexType.User);
-    public static Vertex Asset(int id, string label) => new(id, label, EVertexType.Asset);
 }

@@ -1,13 +1,11 @@
 using System.Diagnostics;
 using System.Text;
-using System.Threading.Tasks;
-using GraphSearch.ConsoleApp.Constants;
 
 namespace GraphSearch.ConsoleApp.Components;
 
 public class VisibilityGraph : Graph
 {
-    public HashSet<Vertex> GetVisibleAssets(int vUserId)
+    public HashSet<Vertex> GetVisibleAssets(string vUserId)
     {
         var vAssets = new HashSet<Vertex>();
         var vUser = V(vUserId);
@@ -30,7 +28,7 @@ public class VisibilityGraph : Graph
                     var shouldExpand = (isExpanding || isApplyChildren) && isNotExcludedAc;
                     return (accepted, shouldExpand, shouldExpand);
                 },
-                neighborFilter: v => v.Type == EVertexType.Asset,
+                neighborFilter: v => v.Type == "a",
                 beforePop: null,
                 initialState: false
             );
@@ -42,7 +40,7 @@ public class VisibilityGraph : Graph
         return vAssets;
     }
 
-    public List<Vertex> GetFullAssetTree(HashSet<int> includedInTree, int vAssetId)
+    public List<Vertex> GetFullAssetTree(HashSet<string> includedInTree, string vAssetId)
     {
         var vAsset = V(vAssetId);
         var tree = vAsset.BFS(
@@ -52,18 +50,18 @@ public class VisibilityGraph : Graph
                 var isIncluded = includedInTree.Contains(v.Id);
                 return (isIncluded, isIncluded, null);
             },
-            neighborFilter: v => v.Type == EVertexType.Asset,
+            neighborFilter: v => v.Type == "a",
             initialState: null
         );
         return tree;
     }
 
-    public (HashSet<int> IncludedInTree, HashSet<int> Unauthorized) CheckVisibility(int vUserId, int vAssetId)
+    public (HashSet<string> IncludedInTree, HashSet<string> Unauthorized) CheckVisibility(string vUserId, string vAssetId)
     {
         var visibleAssets = GetVisibleAssets(vUserId);
         var vAsset = V(vAssetId);
-        var unauthorized = new HashSet<int>();
-        var includedInTree = new HashSet<int>();
+        var unauthorized = new HashSet<string>();
+        var includedInTree = new HashSet<string>();
         _ = vAsset.DFS(
             process: args =>
             {
@@ -74,7 +72,7 @@ public class VisibilityGraph : Graph
 
                 return (false, true, visible);
             },
-            neighborFilter: v => v.Type == EVertexType.Asset,
+            neighborFilter: v => v.Type == "a",
             beforePop: (v, _, s) =>
             {
                 if (s.Equals(true) || includedInTree.Contains(v.Id))
@@ -90,7 +88,7 @@ public class VisibilityGraph : Graph
         return (includedInTree, unauthorized);
     }
 
-    public List<Vertex> GetFirstVisibleAssetTree(int vAssetId, HashSet<int> includedInTree, HashSet<int> unauthorized)
+    public List<Vertex> GetFirstVisibleAssetTree(string vAssetId, HashSet<string> includedInTree, HashSet<string> unauthorized)
     {
         var vAsset = V(vAssetId);
         var found = false;
@@ -109,7 +107,7 @@ public class VisibilityGraph : Graph
 
                 return (found, !found, null);
             },
-            neighborFilter: v => v.Type == EVertexType.Asset,
+            neighborFilter: v => v.Type == "a",
             initialState: null
         ).FirstOrDefault();
 
@@ -136,30 +134,22 @@ public class VisibilityGraph : Graph
         var vUsers = new List<Vertex>();
         var vOrgUnits = new List<Vertex>();
         var vAssets = new List<Vertex>();
-        var vertexMap = new Dictionary<string, Vertex>();
-        int lastId = 0;
 
         for (var i = 0; i < users; i++)
         {
-            var currentId = ++lastId;
-            var user = new Vertex(currentId, $"u{i}", EVertexType.User);
-            vertexMap[user.Label] = user;
+            var user = new Vertex($"u:{i}");
             vUsers.Add(user);
             AddVertex(user);
         }
         for (var i = 0; i < orgUnits; i++)
         {
-            var currentId = ++lastId;
-            var orgUnit = new Vertex(currentId, $"ou{i}", EVertexType.OrgUnit);
-            vertexMap[orgUnit.Label] = orgUnit;
+            var orgUnit = new Vertex($"ou:{i}");
             vOrgUnits.Add(orgUnit);
             AddVertex(orgUnit);
         }
         for (var i = 0; i < assets; i++)
         {
-            var currentId = ++lastId;
-            var asset = new Vertex(currentId, $"a{i}", EVertexType.Asset);
-            vertexMap[asset.Label] = asset;
+            var asset = new Vertex($"a:{i}");
             vAssets.Add(asset);
             AddVertex(asset);
         }
@@ -167,7 +157,7 @@ public class VisibilityGraph : Graph
         var random = new Random();
         for (var i = 0; i < users; i++)
         {
-            var user = vertexMap[$"u{i}"];
+            var user = V($"u:{i}");
             var tempVOrgUnits = vOrgUnits.ToList();
             for (var j = 0; j < random.Next(1, randomEdges); j++)
             {
@@ -179,7 +169,7 @@ public class VisibilityGraph : Graph
 
         for (var i = 0; i < orgUnits; i++)
         {
-            var orgUnit = vertexMap[$"ou{i}"];
+            var orgUnit = V($"ou:{i}");
             var tempVAssets = vAssets.ToList();
             for (var j = 0; j < random.Next(1, randomEdges); j++)
             {
@@ -222,11 +212,11 @@ public class VisibilityGraph : Graph
         var stopwatch = new Stopwatch();
         var numberOfVertices = _vertices.Count;
         var numberOfEdges = _edges.Count;
-        var rootAsset = _vertices.Values.FirstOrDefault(v => v.Type == EVertexType.Asset && v.Parent is null);
-        var randomUserLabel = $"u{random.Next(users)}";
-        var randomAssetLabel = $"a{random.Next(assets)}";
-        var randomUser = _vertices.Values.FirstOrDefault(v => v.Label == randomUserLabel);
-        var randomAsset = _vertices.Values.FirstOrDefault(v => v.Label == randomAssetLabel);
+        var rootAsset = _vertices.Values.FirstOrDefault(v => v.Type == "a" && v.Parent is null);
+        var randomUserId = $"u:{random.Next(users)}";
+        var randomAssetId = $"a:{random.Next(assets)}";
+        var randomUser = _vertices.Values.FirstOrDefault(v => v.Id == randomUserId);
+        var randomAsset = _vertices.Values.FirstOrDefault(v => v.Id == randomAssetId);
 
         // Test 1: serialize graph
         stopwatch.Restart();
@@ -236,7 +226,7 @@ public class VisibilityGraph : Graph
         // Test 2: load graph
         stopwatch.Restart();
         var newGraph = new VisibilityGraph();
-        newGraph.Load(serializedGraph, _vertices);
+        newGraph.Load(serializedGraph);
         report.AppendLine($"Test 2: load graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 3: check visibility

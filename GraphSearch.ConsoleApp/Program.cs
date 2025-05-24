@@ -1,68 +1,36 @@
 ﻿using GraphSearch.ConsoleApp.Components;
-using GraphSearch.ConsoleApp.Constants;
 
 var graph = new Graph();
 
-var ou1 = Vertex.OU(1, "ou1");
-var ou2 = Vertex.OU(2, "ou2");
-var ou3 = Vertex.OU(3, "ou3");
-var ou4 = Vertex.OU(4, "ou4");
-var ou5 = Vertex.OU(5, "ou5");
+var ou1 = new Vertex("ou:1");
+var ou2 = new Vertex("ou:2");
+var ou3 = new Vertex("ou:3");
+var ou4 = new Vertex("ou:4");
+var ou5 = new Vertex("ou:5");
 
-var u1 = Vertex.User(6, "u1");
-var u2 = Vertex.User(7, "u2");
-var u3 = Vertex.User(8, "u3");
-var u4 = Vertex.User(9, "u4");
-var u5 = Vertex.User(10, "u5");
-var u6 = Vertex.User(11, "u6");
-var u7 = Vertex.User(12, "u7");
-var u8 = Vertex.User(13, "u8");
-var u9 = Vertex.User(14, "u9");
-var u10 = Vertex.User(15, "u10");
+var u1 = new Vertex("u:1");
+var u2 = new Vertex("u:2");
+var u3 = new Vertex("u:3");
+var u4 = new Vertex("u:4");
+var u5 = new Vertex("u:5");
+var u6 = new Vertex("u:6");
+var u7 = new Vertex("u:7");
+var u8 = new Vertex("u:8");
+var u9 = new Vertex("u:9");
+var u10 = new Vertex("u:10");
 
-var a1 = Vertex.Asset(16, RootAssetLabel);
-var a2 = Vertex.Asset(17, "a2");
-var a3 = Vertex.Asset(18, "a3");
-var a4 = Vertex.Asset(19, "a4");
-var a5 = Vertex.Asset(20, "a5");
-var a6 = Vertex.Asset(21, "a6");
-var a7 = Vertex.Asset(22, "a7");
-var a8 = Vertex.Asset(23, "a8");
-var a9 = Vertex.Asset(24, "a9");
-var a10 = Vertex.Asset(25, "a10");
-var a11 = Vertex.Asset(26, "a11");
-var a12 = Vertex.Asset(27, "a12");
-
-var labelVertexMap = new Dictionary<string, Vertex>()
-{
-    { ou1.Label, ou1 },
-    { ou2.Label, ou2 },
-    { ou3.Label, ou3 },
-    { ou4.Label, ou4 },
-    { ou5.Label, ou5 },
-    { u1.Label, u1 },
-    { u2.Label, u2 },
-    { u3.Label, u3 },
-    { u4.Label, u4 },
-    { u5.Label, u5 },
-    { u6.Label, u6 },
-    { u7.Label, u7 },
-    { u8.Label, u8 },
-    { u9.Label, u9 },
-    { u10.Label, u10 },
-    { a1.Label, a1 },
-    { a2.Label, a2 },
-    { a3.Label, a3 },
-    { a4.Label, a4 },
-    { a5.Label, a5 },
-    { a6.Label, a6 },
-    { a7.Label, a7 },
-    { a8.Label, a8 },
-    { a9.Label, a9 },
-    { a10.Label, a10 },
-    { a11.Label, a11 },
-    { a12.Label, a12 }
-};
+var a1 = new Vertex(RootAssetId);
+var a2 = new Vertex("a:2");
+var a3 = new Vertex("a:3");
+var a4 = new Vertex("a:4");
+var a5 = new Vertex("a:5");
+var a6 = new Vertex("a:6");
+var a7 = new Vertex("a:7");
+var a8 = new Vertex("a:8");
+var a9 = new Vertex("a:9");
+var a10 = new Vertex("a:10");
+var a11 = new Vertex("a:11");
+var a12 = new Vertex("a:12");
 
 // Add Org Units
 graph.AddVertex(ou1, ou2, ou3, ou4, ou5);
@@ -115,16 +83,16 @@ graph.AddEdge(
 );
 
 var graph2 = new VisibilityGraph();
-graph2.Load(graph.ToSerializedString(), graph.GetVertices());
-await Start(graph2, labelVertexMap);
+graph2.Load(graph.ToSerializedString());
+await Start(graph2);
 
-static async Task Start(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
+static async Task Start(VisibilityGraph graph)
 {
     while (true)
     {
         try
         {
-            await ExecuteOnce(graph, labelVertexMap);
+            await ExecuteOnce(graph);
         }
         catch (Exception e)
         {
@@ -137,7 +105,7 @@ static async Task Start(VisibilityGraph graph, Dictionary<string, Vertex> labelV
     }
 }
 
-static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> labelVertexMap)
+static async Task ExecuteOnce(VisibilityGraph graph)
 {
     Console.WriteLine("1. Get visible assets");
     Console.WriteLine("2. Get first visible asset tree");
@@ -155,19 +123,19 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
     {
         case "1":
             {
-                Console.Write("Please enter the user label: ");
-                var userId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter the user id: ");
+                var userId = Console.ReadLine();
                 var visibleAssets = graph.GetVisibleAssets(userId);
                 PrintTree(visibleAssets.ToList());
             }
             break;
         case "2":
             {
-                Console.Write("Please enter the user label: ");
-                var userId = labelVertexMap[Console.ReadLine()].Id;
-                Console.Write("Please enter the asset label: ");
-                var assetId = labelVertexMap[Console.ReadLine()].Id;
-                var rootAssetId = labelVertexMap[RootAssetLabel].Id;
+                Console.Write("Please enter the user id: ");
+                var userId = Console.ReadLine();
+                Console.Write("Please enter the asset id: ");
+                var assetId = Console.ReadLine();
+                var rootAssetId = RootAssetId;
                 var (includedInTree, unauthorized) = graph.CheckVisibility(userId, rootAssetId);
                 var firstVisibleTree = graph.GetFirstVisibleAssetTree(assetId, includedInTree, unauthorized);
                 PrintTree(firstVisibleTree, unauthorized);
@@ -175,9 +143,9 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
             break;
         case "3":
             {
-                Console.Write("Please enter the user label: ");
-                var userId = labelVertexMap[Console.ReadLine()].Id;
-                var rootAssetId = labelVertexMap[RootAssetLabel].Id;
+                Console.Write("Please enter the user id: ");
+                var userId = Console.ReadLine();
+                var rootAssetId = RootAssetId;
                 var (includedInTree, unauthorized) = graph.CheckVisibility(userId, rootAssetId);
                 var fullTree = graph.GetFullAssetTree(includedInTree, rootAssetId);
                 PrintTree(fullTree, unauthorized);
@@ -190,23 +158,25 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
             break;
         case "5":
             {
-                Console.Write("Please enter the moving asset label: ");
-                var movingAssetId = labelVertexMap[Console.ReadLine()].Id;
-                Console.Write("Please enter the parent asset label: ");
-                var parentAssetId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter the moving asset id: ");
+                var movingAssetId = Console.ReadLine();
+                Console.Write("Please enter the parent asset id: ");
+                var parentAssetId = Console.ReadLine();
                 graph.ChangeParent(movingAssetId, parentAssetId);
             }
             break;
         case "6":
             {
-                Console.Write("Please enter the from vertex label: ");
-                var fromVertex = labelVertexMap[Console.ReadLine()];
-                Console.Write("Please enter the to vertex label: ");
-                var toVertex = labelVertexMap[Console.ReadLine()];
+                Console.Write("Please enter the from vertex id: ");
+                var fromVertexId = Console.ReadLine();
+                var fromVertex = graph.V(fromVertexId, upsert: true);
+                Console.Write("Please enter the to vertex id: ");
+                var toVertexId = Console.ReadLine();
+                var toVertex = graph.V(toVertexId, upsert: true);
                 Console.Write("Please enter the connection symbol: ");
                 var connectionSymbol = Console.ReadLine();
                 var directed = false; var tree = false;
-                if (fromVertex.Type == EVertexType.Asset && toVertex.Type == EVertexType.Asset)
+                if (fromVertex.Type == "a" && toVertex.Type == "a")
                 {
                     directed = true;
                     tree = true;
@@ -216,15 +186,15 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
             break;
         case "7":
             {
-                Console.Write("Please enter the from asset label: ");
-                var fromAssetId = labelVertexMap[Console.ReadLine()].Id;
-                Console.Write("Please enter the to asset label: ");
-                var toAssetId = labelVertexMap[Console.ReadLine()].Id;
+                Console.Write("Please enter the from vertex id: ");
+                var fromVertex = Console.ReadLine();
+                Console.Write("Please enter the to vertex id: ");
+                var toVertex = Console.ReadLine();
                 Console.Write("Please enter directed (1/0): ");
                 var directed = Console.ReadLine() == "1";
                 Console.Write("Please enter the connection symbol: ");
                 var connectionSymbol = Console.ReadLine();
-                graph.RemoveEdge(fromAssetId, toAssetId, directed, connectionSymbol);
+                graph.RemoveEdge(fromVertex, toVertex, directed, connectionSymbol);
             }
             break;
         case "8":
@@ -240,15 +210,15 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
                 Console.Write("Please enter the path to the serialized graph: ");
                 var path = Console.ReadLine();
 
-                bool shouldContinue;
+                bool shouldStop;
                 do
                 {
                     var newGraph = new VisibilityGraph();
                     newGraph.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
                     await newGraph.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
-                    Console.Write("Do you want to continue? (1/0): ");
-                    shouldContinue = Console.ReadLine() == "1";
-                } while (shouldContinue);
+                    Console.Write("Do you want to stop? (1/0): ");
+                    shouldStop = Console.ReadLine() == "1";
+                } while (!shouldStop);
             }
             break;
         case "9":
@@ -259,12 +229,12 @@ static async Task ExecuteOnce(VisibilityGraph graph, Dictionary<string, Vertex> 
     }
 }
 
-static void PrintTree(List<Vertex> tree, HashSet<int> unauthorized = null)
+static void PrintTree(List<Vertex> tree, HashSet<string> unauthorized = null)
 {
     Console.WriteLine(string.Join(", ", tree.Select(v => unauthorized?.Contains(v.Id) == true ? $"{v}?" : v.ToString())));
 }
 
 public partial class Program
 {
-    public const string RootAssetLabel = "a1";
+    public const string RootAssetId = "a:1";
 }
