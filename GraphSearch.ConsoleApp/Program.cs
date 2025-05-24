@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using GraphSearch.ConsoleApp.Components;
 
@@ -84,7 +85,19 @@ graph.AddEdge(
     new Edge(a9, a12, "-", true, true)
 );
 
-var graphManager = new VisibilityGraphManager(graph);
+var u_ou_edges = graph.GetEdges().Where(e => e.From.Type == "u" && e.To.Type == "ou").ToList();
+var ou_a_edges = graph.GetEdges().Where(e => e.From.Type == "ou" && e.To.Type == "a").ToList();
+var a_a_edges = graph.GetEdges().Where(e => e.From.Type == "a" && e.To.Type == "a").ToList();
+var u_ou_serialized = string.Join("\n", u_ou_edges.Select(e => e.SerializedString));
+var ou_a_serialized = string.Join("\n", ou_a_edges.Select(e => e.SerializedString));
+var a_a_serialized = string.Join("\n", a_a_edges.Select(e => e.SerializedString));
+
+var graph2 = new Graph();
+graph2.Load(u_ou_serialized);
+graph2.Load(ou_a_serialized);
+graph2.Load(a_a_serialized);
+
+var graphManager = new VisibilityGraphManager(graph2);
 await Start(graphManager);
 
 static async Task Start(VisibilityGraphManager graphManager)
@@ -227,19 +240,25 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             {
                 Console.Write("Please enter the number of assets: ");
                 var assets = int.Parse(Console.ReadLine());
-                var visibleAssets = new List<object>();
+                var visibleAssets = new List<TestAsset>();
                 for (var i = 0; i < assets; i++)
                 {
-                    visibleAssets.Add(new
+                    var data = new TestAsset
                     {
-                        id = Guid.NewGuid(),
-                        name = $"Asset {i + 1}",
-                        resourcePath = $"{Guid.NewGuid()}/{Guid.NewGuid()}",
-                        isOwner = Random.Shared.Next() % 2 == 0
-                    });
+                        Id = Guid.NewGuid(),
+                        Name = $"Asset {i + 1}",
+                        ResourcePath = $"{Guid.NewGuid()}/{Guid.NewGuid()}",
+                        IsOwner = Random.Shared.Next() % 2 == 0
+                    };
+                    visibleAssets.Add(data);
                 }
-                var totalBytes = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(visibleAssets));
-                Console.WriteLine($"Total {totalBytes} bytes");
+                var stopwatch = Stopwatch.StartNew();
+                var serialized = JsonSerializer.Serialize(visibleAssets);
+                var totalBytes = Encoding.UTF8.GetByteCount(serialized);
+                Console.WriteLine($"Serialized total {totalBytes} bytes in {stopwatch.ElapsedMilliseconds}ms");
+                stopwatch.Restart();
+                var deserialized = JsonSerializer.Deserialize<TestAsset[]>(serialized);
+                Console.WriteLine($"Deserialized total {deserialized.Length} items in {stopwatch.ElapsedMilliseconds}ms");
             }
             break;
         case "10":
@@ -258,4 +277,12 @@ static void PrintTree(List<Vertex> tree, HashSet<string> unauthorized = null)
 public partial class Program
 {
     public const string RootAssetId = "a:1";
+}
+
+public class TestAsset
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string ResourcePath { get; set; }
+    public bool IsOwner { get; set; }
 }
