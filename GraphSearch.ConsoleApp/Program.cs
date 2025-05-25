@@ -88,19 +88,16 @@ graph.AddEdge(
 var u_ou_edges = graph.GetEdges().Where(e => e.From.Type == "u" && e.To.Type == "ou").ToList();
 var ou_a_edges = graph.GetEdges().Where(e => e.From.Type == "ou" && e.To.Type == "a").ToList();
 var a_a_edges = graph.GetEdges().Where(e => e.From.Type == "a" && e.To.Type == "a").ToList();
-var u_ou_serialized = "R\n" + string.Join('\n', u_ou_edges.Select(e => e.SerializedString));
-var ou_a_serialized = "R\n" + string.Join('\n', ou_a_edges.Select(e => e.SerializedString));
-var a_a_serialized = "R\n" + string.Join('\n', a_a_edges.Select(e => e.SerializedString));
+var u_ou_serialized = string.Join("\n", u_ou_edges.Select(e => e.SerializedString));
+var ou_a_serialized = string.Join("\n", ou_a_edges.Select(e => e.SerializedString));
+var a_a_serialized = string.Join("\n", a_a_edges.Select(e => e.SerializedString));
 
 var graph2 = new Graph();
 graph2.Load(u_ou_serialized);
 graph2.Load(ou_a_serialized);
 graph2.Load(a_a_serialized);
 
-var graph3 = new Graph();
-graph3.Load(graph2.ToSerializedString(isCompressed: true));
-
-var graphManager = new VisibilityGraphManager(graph3);
+var graphManager = new VisibilityGraphManager(graph2);
 await Start(graphManager);
 
 static async Task Start(VisibilityGraphManager graphManager)
@@ -171,9 +168,7 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             break;
         case "4":
             {
-                Console.Write("Is compressed (1/0): ");
-                var isCompressed = Console.ReadLine() == "1";
-                Console.WriteLine(graphManager.Graph.ToSerializedString(isCompressed));
+                Console.WriteLine(graphManager.Graph.ToSerializedString());
             }
             break;
         case "5":
@@ -219,8 +214,6 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             break;
         case "8":
             {
-                Console.Write("Is compressed (1/0): ");
-                var isCompressed = Console.ReadLine() == "1";
                 Console.Write("Please enter the number of users: ");
                 var users = int.Parse(Console.ReadLine());
                 Console.Write("Please enter the number of org units: ");
@@ -237,7 +230,7 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
                 {
                     var newManager = new VisibilityGraphManager();
                     newManager.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
-                    await newManager.ExecuteTestsAndWriteReport(path, users, orgUnits, assets, isCompressed);
+                    await newManager.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
                     Console.Write("Do you want to stop? (1/0): ");
                     shouldStop = Console.ReadLine() == "1";
                 } while (!shouldStop);

@@ -206,7 +206,7 @@ public class VisibilityGraphManager(Graph graph = null)
         }
     }
 
-    public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets, bool isCompressed)
+    public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets)
     {
         path = string.IsNullOrEmpty(path) ? "./serialized.txt" : path;
         var report = new StringBuilder();
@@ -223,7 +223,7 @@ public class VisibilityGraphManager(Graph graph = null)
 
         // Test 1: serialize graph
         stopwatch.Restart();
-        var serializedGraph = Graph.ToSerializedString(isCompressed);
+        var serializedGraph = Graph.ToSerializedString();
         report.AppendLine($"Test 1: serialize graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 2: load graph
