@@ -1,7 +1,13 @@
+using System.Text;
+
 namespace GraphSearch.ConsoleApp.Components;
 
 public class Graph
 {
+    public const char SpaceCh = ' ';
+    public const char NewLineCh = '\n';
+    public static readonly char[] ReservedChars = [SpaceCh, NewLineCh];
+
     protected readonly Dictionary<string, Vertex> _vertices = [];
     protected readonly HashSet<Edge> _edges = [];
 
@@ -82,12 +88,10 @@ public class Graph
         }
 
         var line = new List<string>();
-        foreach (var item in serializedString.Split(' ', '\n'))
-        {
-            line.Add(item);
-            if (line.Count < 5)
-                continue;
+        bool isRaw = serializedString[0] == 'R';
 
+        void ProcessLine()
+        {
             var from = line[0];
             var connectionSymbol = line[1];
             var to = line[2];
@@ -110,15 +114,124 @@ public class Graph
             AddEdge(edge);
             line.Clear();
         }
+
+        if (isRaw)
+        {
+            var parts = serializedString.Split(SpaceCh, NewLineCh);
+            for (var i = 1; i < parts.Length; i++)
+            {
+                var item = parts[i];
+                line.Add(item);
+                if (line.Count < 5)
+                    continue;
+
+                ProcessLine();
+            }
+        }
+        else
+        {
+            var parts = serializedString.Split(SpaceCh);
+            var dictItems = parts[0].Split(NewLineCh);
+            var edges = parts[1];
+            var dict = new Dictionary<char, string>();
+
+            for (var i = 1; i < dictItems.Length; i++)
+            {
+                var item = dictItems[i];
+                var key = item[0];
+                var value = item[1..];
+                dict.Add(key, value);
+            }
+
+            for (var i = 0; i < edges.Length; i++)
+            {
+                var item = edges[i];
+
+                if (line.Count < 3)
+                    line.Add(dict[item]);
+                else line.Add(new string([item]));
+
+                if (line.Count < 5)
+                    continue;
+
+                ProcessLine();
+            }
+        }
     }
 
     public override string ToString()
     {
-        return string.Join("\n", _edges.Select(e => e.ToString()));
+        return string.Join(NewLineCh, _edges.Select(e => e.ToString()));
     }
 
-    public virtual string ToSerializedString()
+    public virtual string ToSerializedString(bool isCompressed)
     {
-        return string.Join("\n", _edges.Select(e => e.SerializedString));
+        var sb = new StringBuilder();
+        sb.Append(isCompressed ? "C" : "R"); // C - compressed, R - raw
+
+        if (!isCompressed)
+        {
+            sb.AppendLine();
+            sb.Append(string.Join(NewLineCh, _edges.Select(e => e.SerializedString)));
+            return sb.ToString();
+        }
+
+        var dict = new Dictionary<char, string>();
+        var dictReverse = new Dictionary<string, char>();
+        var currentCh = char.MinValue;
+
+        char GetNextChar()
+        {
+            if (currentCh > char.MaxValue)
+                throw new Exception($"Too many vertices to compress, max: {char.MaxValue}");
+            if (ReservedChars.Contains(currentCh))
+                currentCh++;
+            return currentCh++;
+        }
+
+        var eBd = new StringBuilder();
+        foreach (var e in _edges)
+        {
+            var from = e.From.Id;
+            var to = e.To.Id;
+
+            if (!dictReverse.TryGetValue(from, out var fromChar))
+            {
+                fromChar = GetNextChar();
+                dict.Add(fromChar, from);
+                dictReverse.Add(from, fromChar);
+            }
+
+            if (!dictReverse.TryGetValue(to, out var toChar))
+            {
+                toChar = GetNextChar();
+                dict.Add(toChar, to);
+                dictReverse.Add(to, toChar);
+            }
+
+            if (!dictReverse.TryGetValue(e.ConnectionSymbol, out var connectionSymbolChar))
+            {
+                connectionSymbolChar = GetNextChar();
+                dict.Add(connectionSymbolChar, e.ConnectionSymbol);
+                dictReverse.Add(e.ConnectionSymbol, connectionSymbolChar);
+            }
+
+            eBd.Append(fromChar);
+            eBd.Append(connectionSymbolChar);
+            eBd.Append(toChar);
+            eBd.Append(e.Directed ? "1" : "0");
+            eBd.Append(e.IsTree ? "1" : "0");
+        }
+
+        foreach (var (key, value) in dict)
+        {
+            sb.Append(NewLineCh);
+            sb.Append(key);
+            sb.Append(value);
+        }
+
+        sb.Append(SpaceCh);
+        sb.Append(eBd);
+        return sb.ToString();
     }
 }
