@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using GraphSearch.ConsoleApp.Helpers;
 
 namespace GraphSearch.ConsoleApp.Components;
 
@@ -206,7 +207,7 @@ public class VisibilityGraphManager(Graph graph = null)
         }
     }
 
-    public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets)
+    public async Task ExecuteTestsAndWriteReport(string path, int users, int orgUnits, int assets, bool isCompressed)
     {
         path = string.IsNullOrEmpty(path) ? "./serialized.txt" : path;
         var report = new StringBuilder();
@@ -223,13 +224,13 @@ public class VisibilityGraphManager(Graph graph = null)
 
         // Test 1: serialize graph
         stopwatch.Restart();
-        var serializedGraph = Graph.ToSerializedString();
+        var serializedGraph = isCompressed ? CompressionHelper.Compress(Graph.SerializeToBytes()) : Encoding.UTF8.GetBytes(Graph.SerializeToString());
         report.AppendLine($"Test 1: serialize graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 2: load graph
         stopwatch.Restart();
         var newGraph = new VisibilityGraphManager();
-        newGraph.Graph.Load(serializedGraph);
+        newGraph.Graph.Load(isCompressed ? CompressionHelper.Decompress(serializedGraph) : serializedGraph);
         report.AppendLine($"Test 2: load graph: {stopwatch.ElapsedMilliseconds}ms");
 
         // Test 3: check visibility
@@ -259,10 +260,10 @@ public class VisibilityGraphManager(Graph graph = null)
         newGraph.Graph.RemoveEdge(randomOu.Id, randomAsset.Id);
         report.AppendLine($"Test 7: remove random edge: {stopwatch.ElapsedMilliseconds}ms");
 
-        report.AppendLine($"Serialized graph: {Encoding.UTF8.GetByteCount(serializedGraph)} bytes");
+        report.AppendLine($"Serialized graph: {serializedGraph.Length} bytes");
         Console.WriteLine();
         Console.WriteLine(report.ToString());
 
-        await File.WriteAllTextAsync(path, serializedGraph);
+        await File.WriteAllBytesAsync(path, serializedGraph);
     }
 }

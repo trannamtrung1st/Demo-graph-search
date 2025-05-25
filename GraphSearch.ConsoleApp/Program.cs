@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using GraphSearch.ConsoleApp.Components;
+using GraphSearch.ConsoleApp.Helpers;
 
 var graph = new Graph();
 
@@ -168,7 +168,7 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             break;
         case "4":
             {
-                Console.WriteLine(graphManager.Graph.ToSerializedString());
+                Console.WriteLine(graphManager.Graph.SerializeToString());
             }
             break;
         case "5":
@@ -214,14 +214,20 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             break;
         case "8":
             {
-                Console.Write("Please enter the number of users: ");
-                var users = int.Parse(Console.ReadLine());
-                Console.Write("Please enter the number of org units: ");
-                var orgUnits = int.Parse(Console.ReadLine());
-                Console.Write("Please enter the number of assets: ");
-                var assets = int.Parse(Console.ReadLine());
-                Console.Write("Please enter the number of random edges: ");
-                var randomEdges = int.Parse(Console.ReadLine());
+                Console.Write("Is compressed (1/0): ");
+                var isCompressed = Console.ReadLine() == "1";
+                Console.Write("Please enter the number of users (default 200): ");
+                var usersStr = Console.ReadLine();
+                var users = usersStr == "" ? 200 : int.Parse(usersStr);
+                Console.Write("Please enter the number of org units (default 30): ");
+                var orgUnitsStr = Console.ReadLine();
+                var orgUnits = orgUnitsStr == "" ? 30 : int.Parse(orgUnitsStr);
+                Console.Write("Please enter the number of assets (default 1000): ");
+                var assetsStr = Console.ReadLine();
+                var assets = assetsStr == "" ? 1000 : int.Parse(assetsStr);
+                Console.Write("Please enter the number of random edges (default 10): ");
+                var randomEdgesStr = Console.ReadLine();
+                var randomEdges = randomEdgesStr == "" ? 10 : int.Parse(randomEdgesStr);
                 Console.Write("Please enter the path to the serialized graph: ");
                 var path = Console.ReadLine();
 
@@ -230,7 +236,7 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
                 {
                     var newManager = new VisibilityGraphManager();
                     newManager.GenerateRandomGraph(users, orgUnits, assets, randomEdges);
-                    await newManager.ExecuteTestsAndWriteReport(path, users, orgUnits, assets);
+                    await newManager.ExecuteTestsAndWriteReport(path, users, orgUnits, assets, isCompressed);
                     Console.Write("Do you want to stop? (1/0): ");
                     shouldStop = Console.ReadLine() == "1";
                 } while (!shouldStop);
@@ -238,6 +244,8 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
             break;
         case "9":
             {
+                Console.Write("Is compressed (1/0): ");
+                var isCompressed = Console.ReadLine() == "1";
                 Console.Write("Please enter the number of assets: ");
                 var assets = int.Parse(Console.ReadLine());
                 var visibleAssets = new List<TestAsset>();
@@ -252,13 +260,19 @@ static async Task ExecuteOnce(VisibilityGraphManager graphManager)
                     };
                     visibleAssets.Add(data);
                 }
+
                 var stopwatch = Stopwatch.StartNew();
-                var serialized = JsonSerializer.Serialize(visibleAssets);
-                var totalBytes = Encoding.UTF8.GetByteCount(serialized);
+                var serialized = JsonSerializer.SerializeToUtf8Bytes(visibleAssets);
+                if (isCompressed)
+                    serialized = CompressionHelper.Compress(serialized);
+
+                var totalBytes = serialized.Length;
                 Console.WriteLine($"Serialized total {totalBytes} bytes in {stopwatch.ElapsedMilliseconds}ms");
+
                 stopwatch.Restart();
-                var deserialized = JsonSerializer.Deserialize<TestAsset[]>(serialized);
-                Console.WriteLine($"Deserialized total {deserialized.Length} items in {stopwatch.ElapsedMilliseconds}ms");
+                var deserialized = isCompressed ? CompressionHelper.Decompress(serialized) : serialized;
+                var list = JsonSerializer.Deserialize<TestAsset[]>(deserialized);
+                Console.WriteLine($"Deserialized total {list.Length} items in {stopwatch.ElapsedMilliseconds}ms");
             }
             break;
         case "10":

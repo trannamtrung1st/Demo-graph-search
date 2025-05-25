@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace GraphSearch.ConsoleApp.Components;
 
 public class Graph
@@ -73,6 +75,11 @@ public class Graph
         return v ?? throw new KeyNotFoundException($"Vertex {id} not found");
     }
 
+    public virtual void Load(byte[] serializedBytes, bool reset = false)
+    {
+        Load(Encoding.UTF8.GetString(serializedBytes), reset);
+    }
+
     public virtual void Load(string serializedString, bool reset = false)
     {
         if (reset)
@@ -117,8 +124,13 @@ public class Graph
         return string.Join("\n", _edges.Select(e => e.ToString()));
     }
 
-    public virtual string ToSerializedString()
+    public virtual string SerializeToString()
     {
         return string.Join("\n", _edges.Select(e => e.SerializedString));
+    }
+
+    public virtual byte[] SerializeToBytes()
+    {
+        return Encoding.UTF8.GetBytes(SerializeToString());
     }
 }
