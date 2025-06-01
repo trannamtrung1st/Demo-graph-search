@@ -16,7 +16,7 @@ public class VisibilityGraphManager(Graph graph = null)
 
         foreach (var vOu in vOus)
         {
-            var vOuAssets = vOu.DFS(
+            var vOuAssets = Graph.DFS(vOu,
                 process: args =>
                 {
                     var (v, e, s) = args;
@@ -46,7 +46,7 @@ public class VisibilityGraphManager(Graph graph = null)
     public List<Vertex> GetFullAssetTree(HashSet<string> includedInTree, string vAssetId)
     {
         var vAsset = Graph.V(vAssetId);
-        var tree = vAsset.BFS(
+        var tree = Graph.BFS(vAsset,
             process: args =>
             {
                 var (v, _, _) = args;
@@ -65,7 +65,7 @@ public class VisibilityGraphManager(Graph graph = null)
         var vAsset = Graph.V(vAssetId);
         var unauthorized = new HashSet<string>();
         var includedInTree = new HashSet<string>();
-        _ = vAsset.DFS(
+        _ = Graph.DFS(vAsset,
             process: args =>
             {
                 var (v, _, _) = args;
@@ -95,7 +95,7 @@ public class VisibilityGraphManager(Graph graph = null)
     {
         var vAsset = Graph.V(vAssetId);
         var found = false;
-        var firstVisible = vAsset.BFS(
+        var firstVisible = Graph.BFS(vAsset,
             process: args =>
             {
                 if (found)

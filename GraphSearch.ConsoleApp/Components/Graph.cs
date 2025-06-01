@@ -119,6 +119,101 @@ public class Graph
         }
     }
 
+    // Breadth-First Search
+    public List<Vertex> BFS(
+        string startId, Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
+        Func<Vertex, bool> neighborFilter, object initialState = null)
+    {
+        var start = V(startId);
+        return BFS(start, process, neighborFilter, initialState);
+    }
+
+    public static List<Vertex> BFS(
+        Vertex start, Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
+        Func<Vertex, bool> neighborFilter, object initialState = null)
+    {
+        var visited = new HashSet<string>();
+        var queue = new Queue<(Vertex v, Edge e, object s)>();
+        var result = new List<Vertex>();
+        queue.Enqueue((start, null, initialState));
+        visited.Add(start.Id);
+        process ??= (_ => (true, true, initialState));
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            var (accepted, shouldExpand, state) = process(current);
+            if (accepted)
+                result.Add(current.v);
+
+            if (!shouldExpand)
+                continue;
+
+            foreach (var edge in current.v.GetEdges())
+            {
+                var neighbor = edge.Other(current.v);
+                if (edge.Directed && edge.From != current.v || !neighborFilter(neighbor))
+                    continue;
+
+                if (!visited.Contains(neighbor.Id))
+                {
+                    queue.Enqueue((neighbor, edge, state));
+                    visited.Add(neighbor.Id);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Depth-First Search
+    public List<Vertex> DFS(
+        string startId, Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
+        Func<Vertex, bool> neighborFilter, Action<Vertex, Edge, object> beforePop, object initialState = null)
+    {
+        var start = V(startId);
+        return DFS(start, process, neighborFilter, beforePop, initialState);
+    }
+
+    public static List<Vertex> DFS(
+        Vertex start, Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
+        Func<Vertex, bool> neighborFilter, Action<Vertex, Edge, object> beforePop, object initialState = null)
+    {
+        var visited = new HashSet<string>();
+        var result = new List<Vertex>();
+        process ??= (_ => (true, true, initialState));
+        DFSUtil((start, null, initialState), visited, result, process, neighborFilter, beforePop);
+        return result;
+    }
+
+    private static void DFSUtil(
+        (Vertex v, Edge e, object s) args, HashSet<string> visited, List<Vertex> result,
+        Func<(Vertex v, Edge e, object s), (bool Accepted, bool ShouldExpand, object State)> process,
+        Func<Vertex, bool> neighborFilter,
+        Action<Vertex, Edge, object> beforePop)
+    {
+        var (vertex, edge, _) = args;
+        visited.Add(vertex.Id);
+        var (accepted, shouldExpand, state) = process(args);
+        if (accepted)
+            result.Add(vertex);
+
+        if (!shouldExpand)
+            return;
+
+        foreach (var e in vertex.GetEdges())
+        {
+            var neighbor = e.Other(vertex);
+            if (e.Directed && e.From != vertex || !neighborFilter(neighbor))
+                continue;
+
+            if (!visited.Contains(neighbor.Id))
+                DFSUtil((neighbor, e, state), visited, result, process, neighborFilter, beforePop);
+        }
+
+        beforePop?.Invoke(vertex, edge, state);
+    }
+
     public override string ToString()
     {
         return string.Join("\n", _edges.Select(e => e.ToString()));
